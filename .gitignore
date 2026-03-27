@@ -1,0 +1,15 @@
+# Environments
+.venv/
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Database files (We will ignore the ChromaDB folder so it doesn't bloat your repo)
+chroma_db/
+
+# Data files (Optional, but good practice not to upload raw user data)
+*.csv
+
+
