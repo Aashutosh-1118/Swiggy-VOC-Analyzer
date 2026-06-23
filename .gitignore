@@ -9,5 +9,7 @@ __pycache__/
 
 # Data files (Optional, but good practice not to upload raw user data)
 *.csv
+chroma_db/
+chroma_db_new/
 
 
