@@ -8,3 +8,5 @@ langchain-huggingface
 chromadb
 sentence-transformers
 streamlit
+uvicorn
+fastapi
