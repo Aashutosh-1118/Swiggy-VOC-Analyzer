@@ -7,9 +7,9 @@ from langchain_core.documents import Document
 
 
 def create_vector_db():
-    print("🔄 Loading reviews from CSV...")
+    print("[INFO] Loading reviews from CSV...")
     if not os.path.exists("swiggy_negative_reviews.csv"):
-        print("❌ Error: Run scraper.py first!")
+        print("[ERROR] Run scraper.py first!")
         return
 
     df = pd.read_csv("swiggy_negative_reviews.csv")
@@ -26,12 +26,13 @@ def create_vector_db():
         )
         documents.append(doc)
 
-    print(f"✅ Loaded {len(documents)} reviews. Building AI folder...")
+    print(f"[INFO] Loaded {len(documents)} reviews. Building vector store...")
 
-    if os.path.exists("./chroma_db"):
-        shutil.rmtree("./chroma_db")
+     # Build into a fresh temp folder instead of overwriting the live one
+    temp_dir = "./chroma_db_new"
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
 
-    # This part might take a minute to download the model
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     vectorstore = Chroma.from_documents(
@@ -40,7 +41,7 @@ def create_vector_db():
         persist_directory="./chroma_db"
     )
 
-    print("🚀 SUCCESS! 'chroma_db' folder created.")
+    print("[SUCCESS] New vector store built at chroma_db_new")
 
 
 if __name__ == "__main__":
