@@ -12,7 +12,7 @@ The project is built as a **decoupled API + frontend system**, not a single scri
 
 ## 🏗️ Architecture
 
-\`\`\`
+```
 metric-rootcause-analyzer/
 ├── backend/
 │   ├── main.py          # FastAPI app — routes, error handling
@@ -25,7 +25,7 @@ metric-rootcause-analyzer/
 ├── build_vector_db.py     # Builds the ChromaDB vector store from scraped reviews
 ├── requirements.txt
 └── .env                   # API keys (not committed — see Setup)
-\`\`\`
+```
 
 **Why this structure:** separating the RAG logic into a standalone API means the frontend is just a thin client. The same backend could serve a different frontend, a CLI tool, or another service without any code duplication.
 
@@ -59,39 +59,39 @@ metric-rootcause-analyzer/
 ## ⚙️ Setup
 
 ### 1. Clone and install dependencies
-\`\`\`bash
+```bash
 git clone <your-repo-url>
 cd metric-rootcause-analyzer
 pip install -r requirements.txt
-\`\`\`
+```
 
 ### 2. Configure environment variables
 Create a `.env` file in the project root:
-\`\`\`
+```
 GROQ_API_KEY=your-groq-api-key
 API_KEY=choose-any-secret-string
 API_URL=http://localhost:8000
-\`\`\`
+```
 - `GROQ_API_KEY` — from [console.groq.com](https://console.groq.com)
 - `API_KEY` — a secret you choose yourself, used to authenticate requests to your own backend
 - `API_URL` — where the backend is running (`http://localhost:8000` for local dev)
 
 ### 3. Build the initial dataset
-\`\`\`bash
+```bash
 python scraper.py
 python build_vector_db.py
-\`\`\`
+```
 
 ### 4. Run the backend
-\`\`\`bash
+```bash
 uvicorn backend.main:app --reload
-\`\`\`
+```
 Visit `http://localhost:8000/docs` for interactive API documentation (Swagger UI).
 
 ### 5. Run the frontend (in a separate terminal)
-\`\`\`bash
+```bash
 streamlit run frontend/app.py
-\`\`\`
+```
 Visit `http://localhost:8501`.
 
 ---
@@ -107,13 +107,6 @@ Visit `http://localhost:8501`.
 
 Authenticated requests require an `x-api-key` header matching your `.env`'s `API_KEY`.
 
-**Example:**
-\`\`\`bash
-curl -X POST http://localhost:8000/analyze \\
-  -H "Content-Type: application/json" \\
-  -H "x-api-key: your-secret-key" \\
-  -d '{"query": "refund issues", "k": 10}'
-\`\`\`
 
 ---
 
