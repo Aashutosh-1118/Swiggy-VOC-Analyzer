@@ -1,5 +1,9 @@
 import os
+import sys
 import shutil
+import subprocess
+import time
+from datetime import datetime
 from pathlib import Path
 
 from langchain_chroma import Chroma
@@ -7,12 +11,12 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 
-# chroma_db lives at the project root, one level above backend/
-CHROMA_DIR = Path(__file__).parent.parent / "chroma_db"
+# Paths
+PROJECT_ROOT = Path(__file__).parent.parent
+CHROMA_DIR = PROJECT_ROOT / "chroma_db"
 
 _vectorstore = None
 _llm = None
-
 
 def load_components():
     """Lazily initialize the vectorstore and LLM once, reuse across requests."""
@@ -30,11 +34,10 @@ def load_components():
 
     return _vectorstore, _llm
 
-
 def analyze_query(query: str, k: int = 10) -> dict:
     """
     Runs the RAG pipeline: retrieve top-k similar reviews, then ask the LLM
-    for a PM-style root cause analysis grounded in those reviews.
+    for a PM/SDE-style root cause analysis grounded in those reviews.
     """
     if not CHROMA_DIR.exists():
         raise FileNotFoundError(
@@ -51,10 +54,25 @@ def analyze_query(query: str, k: int = 10) -> dict:
         f"User {d.metadata['user']}: {d.page_content}" for d in docs
     )
 
+    system_prompt = """
+    You are a cross-functional expert acting as both a Lead Software Engineer and a Senior Product Manager at Swiggy.
+    Your goal is to perform a strict, data-backed Root Cause Analysis (RCA) using ONLY the provided user reviews.
+
+    CRITICAL RULES:
+    1. NO HALLUCINATIONS: Do not guess or invent problems. If the reviews lack specific details (e.g., they just say "bad app"), explicitly output: "Error: Insufficient technical or product data in the retrieved reviews to determine a root cause."
+    2. QUOTE THE DATA: You must back up every single finding with a short, direct quote from the provided reviews.
+    3. DUAL-PERSPECTIVE ANALYSIS: You must structure your final answer into these two distinct sections:
+   
+   🛠️ Engineering Root Causes & Fixes:
+   Focus on technical issues (e.g., API timeouts, memory leaks, database sync issues, location tracking failures, network drops).
+   
+   📊 Product & Operational Root Causes & Fixes:
+   Focus on business logic and user experience (e.g., refund policies, payment UX friction, delivery executive routing, customer support response delays).
+   """
+
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a Senior Product Manager at Swiggy. Analyze the "
-                    "following reviews and provide a root cause and a solution."),
-        ("human", "Reviews:\n{context}\n\nQuestion: {question}")
+        ("system", system_prompt),
+        ("human", "Reviews:\n{context}\n\nQuestion: {question}\n\nProvide your structured Dual-Perspective Analysis:")
     ])
 
     chain = prompt | llm
@@ -67,24 +85,11 @@ def analyze_query(query: str, k: int = 10) -> dict:
 
     return {"answer": response.content, "sources": sources}
 
-
-
-
-
-
-import time
-from datetime import datetime
-
 def get_last_updated() -> str:
     if not CHROMA_DIR.exists():
         return "Never"
     mtime = CHROMA_DIR.stat().st_mtime
     return datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
-import subprocess
-import sys
-
-
-PROJECT_ROOT = Path(__file__).parent.parent
 
 def refresh_data(review_count: int = 1000) -> dict:
     """Re-scrapes Play Store reviews and rebuilds the vector DB."""
@@ -108,7 +113,7 @@ def refresh_data(review_count: int = 1000) -> dict:
         if build_result.returncode != 0:
             return {"success": False, "step": "vector_db_build", "error": build_result.stderr[-500:]}
 
-         # Swap: remove old, rename new into place
+        # Swap: remove old, rename new into place
         new_dir = PROJECT_ROOT / "chroma_db_new"
         if new_dir.exists():
             if CHROMA_DIR.exists():
