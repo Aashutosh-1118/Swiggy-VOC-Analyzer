@@ -38,7 +38,7 @@ def create_vector_db():
     vectorstore = Chroma.from_documents(
         documents=documents,
         embedding=embeddings,
-        persist_directory="./chroma_db"
+        persist_directory=temp_dir
     )
 
     print("[SUCCESS] New vector store built at chroma_db_new")
