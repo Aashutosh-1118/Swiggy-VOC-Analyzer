@@ -116,9 +116,13 @@ def refresh_data(review_count: int = 1000) -> dict:
         # Swap: remove old, rename new into place
         new_dir = PROJECT_ROOT / "chroma_db_new"
         if new_dir.exists():
+            old_backup = PROJECT_ROOT / "chroma_db_old"
+            if old_backup.exists():
+                shutil.rmtree(old_backup, ignore_errors=True)
             if CHROMA_DIR.exists():
-                shutil.rmtree(CHROMA_DIR, ignore_errors=True)
+                CHROMA_DIR.rename(old_backup)
             new_dir.rename(CHROMA_DIR)
+            shutil.rmtree(old_backup, ignore_errors=True)
         return {"success": True, "last_updated": get_last_updated()}
 
     except subprocess.TimeoutExpired:
